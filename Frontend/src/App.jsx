@@ -12,7 +12,7 @@ import CircuitBackgroundOne from "./components/Background/CircuitBackgroundOne.j
 import SplashScreen from "./components/SplashScreen.jsx";
 import Footer from "./components/Footer.jsx";
 import NeonLoginReplica from "./pages/Login.jsx";
-
+ import ApplicationForm from "./components/ApplicationForm.jsx";
 
 function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -29,7 +29,7 @@ function App() {
           <Route path="/projects" element={<Projects />} />
           <Route path="/members" element={<Members />} />
           <Route path="/login" element={<NeonLoginReplica />} />
-          <Route path="/Application" element={<NeonLoginReplica/>}/>
+          <Route path="/Application" element={<ApplicationForm/>}/>
         </Routes>
         <Footer />
       </PcbCircuitBackground>
