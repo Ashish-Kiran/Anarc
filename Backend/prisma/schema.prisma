@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+enum ApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum Year {
+  FIRST
+  SECOND
+  THIRD
+  FOURTH
+}
+
+// ─── User (Members + Admins) ───────────────────────────────────────────────
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String?  // nullable — OAuth users won't have one
+  photo     String?
+  batch     String?
+  instagram String?
+  linkedin  String?
+  github    String?
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts           Account[]
+  sessions           Session[]
+  notifications      Notification[]
+  replies            Reply[]
+  announcements      Announcement[]
+  events             Event[]
+  projects           Project[]
+  passwordResetToken PasswordResetToken?
+  application        Application?
+}
+
+// ─── OAuth Accounts ────────────────────────────────────────────────────────
+
+model Account {
+  id                Int       @id @default(autoincrement())
+  userId            Int
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String    // "google", "github", etc.
+  providerAccountId String    // ID from the provider
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+
+  @@unique([provider, providerAccountId])
+}
+
+// ─── Sessions ──────────────────────────────────────────────────────────────
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessionToken String   @unique
+  expires      DateTime
+  createdAt    DateTime @default(now())
+}
+
+// ─── Password Reset ────────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+// ─── Application (Applicants) ──────────────────────────────────────────────
+
+model Application {
+  id         Int               @id @default(autoincrement())
+  name       String
+  email      String            @unique
+  password   String            // required — applicants always use email/password
+  rollNumber String            @unique
+  branch     String
+  year       Year
+  batch      String?
+  reason     String
+  status     ApplicationStatus @default(PENDING)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  // set when application is ACCEPTED and a User account is created
+  userId Int?  @unique
+  user   User? @relation(fields: [userId], references: [id])
+
+  admitCard AdmitCard?
+}
+
+// ─── Admit Card ────────────────────────────────────────────────────────────
+
+model AdmitCard {
+  id            Int         @id @default(autoincrement())
+  applicationId Int         @unique
+  application   Application @relation(fields: [applicationId], references: [id])
+  examDate      DateTime
+  venue         String?
+  issuedAt      DateTime    @default(now())
+}
+
+// ─── Events ────────────────────────────────────────────────────────────────
+
+model Event {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  date        DateTime
+  createdAt   DateTime @default(now())
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+}
+
+// ─── Projects ──────────────────────────────────────────────────────────────
+
+model Project {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  imageUrl    String?
+  githubUrl   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+}
+
+// ─── Announcements ─────────────────────────────────────────────────────────
+
+model Announcement {
+  id        Int      @id @default(autoincrement())
+  content   String
+  isActive  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  authorId Int
+  author   User @relation(fields: [authorId], references: [id])
+}
+
+// ─── Contact Messages ──────────────────────────────────────────────────────
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+
+  notifications Notification[]
+  replies       Reply[]
+}
+
+// ─── Notifications ─────────────────────────────────────────────────────────
+
+model Notification {
+  id        Int            @id @default(autoincrement())
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id])
+  messageId Int
+  message   ContactMessage @relation(fields: [messageId], references: [id])
+  isRead    Boolean        @default(false)
+  createdAt DateTime       @default(now())
+}
+
+// ─── Replies ───────────────────────────────────────────────────────────────
+
+model Reply {
+  id        Int            @id @default(autoincrement())
+  userId    Int
+  user      User           @relation(fields: [userId], references: [id])
+  messageId Int
+  message   ContactMessage @relation(fields: [messageId], references: [id])
+  content   String
+  createdAt DateTime       @default(now())
+}
